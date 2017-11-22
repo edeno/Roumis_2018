@@ -1,7 +1,7 @@
 # Roumis_2018
 
 ### Installation
-1. Install miniconda (or anaconda) if it isn't already installed.
+1. Install [miniconda](https://conda.io/miniconda.html) (or anaconda) if it isn't already installed.
 
 2. Go to the local repository (`.../Roumis_2018`) and install the conda environment for the repository. Type into bash:
 ```bash
