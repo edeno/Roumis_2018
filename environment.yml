@@ -1,0 +1,17 @@
+name: Roumis_2018
+channels:
+- conda-forge
+- defaults
+- edeno
+dependencies:
+- "python >= 3.5"
+- loren_frank_data_processing
+- ripple_detection
+- replay_classification
+- spectral_connectivity
+- jupyter
+- setuptools
+- "pytest >= 2.7.1"
+- pytest-cov
+- coveralls
+- netcdf4
