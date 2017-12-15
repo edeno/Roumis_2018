@@ -11,7 +11,7 @@ logger = getLogger(__name__)
 
 _MARKS = ['channel_1_max', 'channel_2_max', 'channel_3_max',
           'channel_4_max']
-_BRAIN_AREAS = 'CA1'
+_BRAIN_AREAS = 'ca1'
 
 
 def detect_epoch_ripples(epoch_key, animals, brain_areas=_BRAIN_AREAS,
