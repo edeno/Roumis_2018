@@ -15,16 +15,13 @@ _BRAIN_AREAS = 'ca1'
 
 
 def detect_epoch_ripples(epoch_key, animals, brain_areas=_BRAIN_AREAS,
-                         zscore_threshold=3):
+                         zscore_threshold=3, sampling_frequency=1500):
     '''
     '''
     logger.info('Detecting ripples')
 
-    SAMPLING_FREQUENCY = 1000
-
     tetrode_info = make_tetrode_dataframe(animals).xs(
         epoch_key, drop_level=False)
-    # Get cell-layer CA1, iCA1 LFPs
 
     brain_areas = [brain_areas] if isinstance(
         brain_areas, str) else brain_areas
@@ -34,7 +31,7 @@ def detect_epoch_ripples(epoch_key, animals, brain_areas=_BRAIN_AREAS,
     hippocampus_lfps = pd.concat(
         [get_LFP_dataframe(tetrode_key, animals)
          for tetrode_key in tetrode_keys], axis=1
-    ).astype(float).resample('1ms').mean().dropna()
+    )
     time = hippocampus_lfps.index
 
     def _time_function(epoch_key, animals):
@@ -44,6 +41,6 @@ def detect_epoch_ripples(epoch_key, animals, brain_areas=_BRAIN_AREAS,
         epoch_key, animals, _time_function).speed
 
     return Kay_ripple_detector(
-        time, hippocampus_lfps.values, speed.values, SAMPLING_FREQUENCY,
+        time, hippocampus_lfps.values, speed.values, sampling_frequency,
         minimum_duration=pd.Timedelta(milliseconds=15),
         zscore_threshold=zscore_threshold)
