@@ -1,3 +1,6 @@
+#DR
+.Raw-Data/
+
 # Data Files
 *.mat
 *.nc
