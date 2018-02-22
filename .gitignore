@@ -1,5 +1,5 @@
 #DR
-.Raw-Data/
+.Raw-Data/*
 
 # Data Files
 *.mat
