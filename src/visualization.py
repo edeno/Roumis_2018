@@ -91,3 +91,121 @@ def kernel_density_estimate(
                        sampling_frequency / np.sqrt(n_events))
     ci = np.array([-1.96, 0, 1.96])
     return firing_rate + firing_rate_std * ci
+
+
+def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, window=.5):
+    '''per event, event-triggered spike raster as Holoviews HoloMap
+
+    Parameters
+    ----------
+    event_list : list of ints
+    ntrodes : list of ints
+    event_times : pd.DataFrame, columns=['start_time', 'end_time']
+    spike_times : pd.DataFrame, index=timedelta labeled 'time'
+    window : float
+
+    Returns
+    -------
+    spikes_Spikes : Holoviews Spikes element
+
+    '''
+    spikes_Spikes = {}
+    for ievent, event_number in enumerate(event_list):
+        event_start_time = event_times.iloc[event_number].start_time
+        event_end_time = event_times.iloc[event_number].end_time
+        window_start_time = event_start_time - timedelta(seconds=window)
+        window_end_time = event_start_time + timedelta(seconds=window)
+        window_spikes = spike_times[window_start_time:window_end_time]
+        window_spikes.reset_index(inplace=True)
+        spikes_Spikes[ievent] = hv.NdOverlay({nti: hv.Spikes(window_spikes[window_spikes.ntrode == nti].time,
+                                                             kdims='time', group='multiunit',
+                                                             label=ntrode_df.xs(epoch_index).area[nti])
+                                              .opts(plot=dict(position=nti))
+                                              for nti in ntrodes})
+    return spikes_Spikes
+
+
+def get_event_spikes_dmap(ntrodes, event_times, spike_times, window=.5, event_number=0):
+    '''per event, event-triggered spike raster as Holoviews DynamicMap
+
+    Parameters
+    ----------
+    event_number : int, default 0 for initialization
+    ntrodes : list of ints
+    event_times : pd.DataFrame, columns=['start_time', 'end_time']
+    spike_times : pd.DataFrame, index=timedelta labeled 'time'
+    window : float
+
+    Returns
+    -------
+    spikes_Spikes : Holoviews Spikes element
+
+    '''
+    event_start_time = event_times.iloc[event_number].start_time
+    event_end_time = event_times.iloc[event_number].end_time
+    window_start_time = event_start_time - timedelta(seconds=window)
+    window_end_time = event_start_time + timedelta(seconds=window)
+    window_spikes = spike_times[window_start_time:window_end_time]
+    window_spikes.index = window_spikes.index.total_seconds()
+    window_spikes.reset_index(inplace=True)
+
+    spikes_Spikes = hv.NdOverlay({nti: hv.Spikes(window_spikes[window_spikes.ntrode == nti].time,
+                                                 kdims='time', group='multiunit',
+                                                 label=ntrode_df.xs(epoch_index).area[nti])
+                                  .opts(plot=dict(position=nti))
+                                  for nti in ntrodes}).opts(plot=dict(yticks=ntrodes))
+    return spikes_Spikes
+
+
+def get_event_bounds_hmaps(event_list, ntrodes, event_times):
+    '''per event, event duration as Holoviews Box Polygon
+
+    Parameters
+    ----------
+    event_list : list of ints
+    ntrodes : list of ints
+    event_times : pd.DataFrame, columns=['start_time', 'end_time']
+
+    Returns
+    -------
+    event_bounds : Holoviews Box Polygon element
+
+    '''
+    event_bounds = {}
+    for ievent, event_list in enumerate(event_number):
+        event_start_time = event_times.iloc[event_number].start_time
+        event_end_time = event_times.iloc[event_number].end_time
+        xbox_center = np.mean(
+            [event_start_time.total_seconds(), event_end_time.total_seconds()])
+        ybox_center = np.mean([min(ntrodes), max(ntrodes)])
+        xbox_width = event_end_time.total_seconds() - event_start_time.total_seconds()
+        ybox_width = max(ntrodes) - min(ntrodes)
+        event_bounds[ievent] = hv.Polygons(
+            [hv.Box(xbox_center, ybox_center, (xbox_width, ybox_width))])
+    return event_bounds
+
+
+def get_event_bounds_dmap(ntrodes, event_times, event_number=0):
+    '''per event, event duration as Holoviews Box Polygon
+
+    Parameters
+    ----------
+    event_number : int, default 0 for initialization
+    ntrodes : list of ints
+    event_times : pd.DataFrame, columns=['start_time', 'end_time']
+
+    Returns
+    -------
+    event_bounds : Holoviews Box Polygon element
+
+    '''
+    event_start_time = event_times.iloc[event_number].start_time
+    event_end_time = event_times.iloc[event_number].end_time
+    xbox_center = np.mean(
+        [event_start_time.total_seconds(), event_end_time.total_seconds()])
+    ybox_center = np.mean([min(ntrodes), max(ntrodes)+1])
+    xbox_width = event_end_time.total_seconds() - event_start_time.total_seconds()
+    ybox_width = (max(ntrodes) - min(ntrodes))+1
+    event_bounds = hv.Polygons(
+        [hv.Box(xbox_center, ybox_center, (xbox_width, ybox_width))])
+    return event_bounds
