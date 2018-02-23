@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import holoviews as hv
 from scipy.signal import convolve, gaussian
 
 from loren_frank_data_processing import (get_multiunit_indicator_dataframe,
                                          get_spike_indicator_dataframe,
                                          reshape_to_segments)
+from datetime import timedelta
 
 
 def plot_perievent_raster(neuron_or_tetrode_key, animals, events, tetrode_info,
@@ -93,7 +95,7 @@ def kernel_density_estimate(
     return firing_rate + firing_rate_std * ci
 
 
-def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, window=.5):
+def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, ntrode_df, window=.5):
     '''per event, event-triggered spike raster as Holoviews HoloMap
 
     Parameters
@@ -125,7 +127,7 @@ def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, window
     return spikes_Spikes
 
 
-def get_event_spikes_dmap(ntrodes, event_times, spike_times, window=.5, event_number=0):
+def get_event_spikes_dmap(ntrodes=[], epoch_index=(), event_times={}, spike_times={}, ntrode_df={}, window=.5, event_number=0):
     '''per event, event-triggered spike raster as Holoviews DynamicMap
 
     Parameters
@@ -138,7 +140,7 @@ def get_event_spikes_dmap(ntrodes, event_times, spike_times, window=.5, event_nu
 
     Returns
     -------
-    spikes_Spikes : Holoviews Spikes element
+    Spikes : Holoviews Spikes element
 
     '''
     event_start_time = event_times.iloc[event_number].start_time
@@ -148,13 +150,17 @@ def get_event_spikes_dmap(ntrodes, event_times, spike_times, window=.5, event_nu
     window_spikes = spike_times[window_start_time:window_end_time]
     window_spikes.index = window_spikes.index.total_seconds()
     window_spikes.reset_index(inplace=True)
+    Spikes = {}
+    for nti in ntrodes:
+        Spikes = ({nti:
+        hv.Spikes(window_spikes[window_spikes.ntrode == nti].time,
+         kdims = 'time',  group = 'multiunit', label = ntrode_df.xs(epoch_index).area[nti])
+         .opts(plot = dict(position = nti))})
 
-    spikes_Spikes = hv.NdOverlay({nti: hv.Spikes(window_spikes[window_spikes.ntrode == nti].time,
-                                                 kdims='time', group='multiunit',
-                                                 label=ntrode_df.xs(epoch_index).area[nti])
-                                  .opts(plot=dict(position=nti))
-                                  for nti in ntrodes}).opts(plot=dict(yticks=ntrodes))
-    return spikes_Spikes
+    # Spikes = hv.NdOverlay(overlays=Spikes, kdims=['event_number'])
+    #.opts(plot = dict(yticks = ntrodes))
+
+    return Spikes
 
 
 def get_event_bounds_hmaps(event_list, ntrodes, event_times):
