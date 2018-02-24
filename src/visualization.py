@@ -127,7 +127,7 @@ def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, ntrode
     return spikes_Spikes
 
 
-def get_event_spikes_dmap(ntrodes=[], epoch_index=(), event_times={}, spike_times={}, ntrode_df={}, window=.5, event_number=0):
+def get_event_spikes_dmap(ntrodes, epoch_index, event_times, spike_times, ntrode_df, window=.5, event_number=0):
     '''per event, event-triggered spike raster as Holoviews DynamicMap
 
     Parameters
@@ -152,13 +152,11 @@ def get_event_spikes_dmap(ntrodes=[], epoch_index=(), event_times={}, spike_time
     window_spikes.reset_index(inplace=True)
     Spikes = {}
     for nti in ntrodes:
-        Spikes = ({nti:
-        hv.Spikes(window_spikes[window_spikes.ntrode == nti].time,
-         kdims = 'time',  group = 'multiunit', label = ntrode_df.xs(epoch_index).area[nti])
-         .opts(plot = dict(position = nti))})
+        Spikes[nti] = hv.Spikes(
+        window_spikes[window_spikes.ntrode == nti].time,
+         kdims = 'time',  group = 'multiunit', label = ntrode_df.xs(epoch_index).area[nti]).opts(plot = dict(position = nti))
 
-    # Spikes = hv.NdOverlay(overlays=Spikes, kdims=['event_number'])
-    #.opts(plot = dict(yticks = ntrodes))
+    Spikes = hv.NdOverlay(overlays=Spikes, kdims=['event_number']).opts(plot = dict(yticks = ntrodes))
 
     return Spikes
 
