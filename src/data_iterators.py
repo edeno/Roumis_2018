@@ -46,24 +46,24 @@ def create_segments_marks_df(marks_df, ntrodes, segments_times, position,
     return segments_marks
 
 
-def create_segments_times_fromChunks(n_segments, marks_df):
-    '''Create times df with start and end for each segment when
+def chunk_timeseries(num_of_chunks, timeseries_df):
+    '''linspaced chunks of timeseries
 
     Parameters
     ----------
-    n_segments : int
-    marks_df : pandas.DataFrame
+    num_of_chunks : int (the number of chunks)
+    timeseries_df : pandas.DataFrame. (requires time index)
 
     Returns
     -------
-    segment_times : pandas.DataFrame
+    segment_times : pandas.DataFrame (start_time, end_time columns)
 
     '''
-    startstamp = marks_df[0].index[0].value  # get epoch start and end
-    endstamp = marks_df[0].index[-1].value
+    startstamp = timeseries_df[0].index[0].value  # get epoch start and end
+    endstamp = timeseries_df[0].index[-1].value
     segments_times = pd.DataFrame(columns=['start_time', 'end_time'])
     segtimes = np.linspace(startstamp, endstamp,
-                           n_segments + 2, endpoint=True)
+                           num_of_chunks + 2, endpoint=True)
     segments_times['start_time'] = pd.TimedeltaIndex(segtimes[0:-2])
     segments_times['end_time'] = pd.TimedeltaIndex(segtimes[1:-1])
     return segments_times
