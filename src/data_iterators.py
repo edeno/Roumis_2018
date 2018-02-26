@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def chunk_mark_timeseries(timeseries_df, ntrodes, segments_times, position=0,
+def chunk_mark_timeseries(timeseries_df, ntrodes, segments_times, position,
                           resample_time='1ms'):
     '''With row per segment
 
@@ -27,23 +27,23 @@ def chunk_mark_timeseries(timeseries_df, ntrodes, segments_times, position=0,
     segments_marks['marks'] = [
         pd.concat([
             (timeseries_df[introde][seg['start_time']:seg['end_time']]
-             .resample(resample_time).mean(axis=0))
-            for introde, ntrode in enumerate(ntrodes)], axis=1)
+            .resample(resample_time).mean()).dropna()
+            for introde, ntrode in enumerate(ntrodes)], keys=ntrodes)
         for segind, seg in segments_times.iterrows()
     ]
-    if position:
-        segments_marks['linear_position'] = chunk_position_timeseries(
-            position, resample_time, event_times)
 
-    segments_marks['segment_ID'] = event_times.index
-    segments_marks['start_time'] = event_times['start_time']
-    segments_marks['end_time'] = event_times['end_time']
+    segments_marks['linear_position'] = chunk_position_timeseries(
+        position, resample_time, segments_times)
+
+    segments_marks['segment_ID'] = segments_times.index
+    segments_marks['start_time'] = segments_times['start_time']
+    segments_marks['end_time'] = segments_times['end_time']
     return segments_marks
 
-def chunk_position_timeseries(position, resample_time, event_times):
+def chunk_position_timeseries(position, resample_time, segments_times):
     position_chunks = [
-        position[seg['start_time']:seg['end_time']
-                 ].resample(resample_time).mean(axis=0)
+        position[seg['start_time']:seg['end_time']]
+        .resample(resample_time).interpolate(method='linear')
         for segind, seg in segments_times.iterrows()
         ]
     return position_chunks
@@ -63,7 +63,7 @@ def minute_linspaced_epoch_times(animals, epoch_key):
     segment_times : pandas.DataFrame (start_time, end_time columns)
 
     '''
-    
+
     epoch_time = get_trial_time(epoch_key, animals)
     epoch_minutes = pd.DataFrame(index=epoch_time).resample('1T').min()
     segments_times = pd.DataFrame(columns=['start_time', 'end_time'])
@@ -75,7 +75,7 @@ def minute_linspaced_epoch_times(animals, epoch_key):
 
 def get_event_times(event_times):
     '''peri-event timeseries chunks
-    currently this is just a dummy handle
+    this is just a dummy handle
 
     Parameters
     ----------
