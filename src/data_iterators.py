@@ -71,3 +71,25 @@ def minute_linspaced_epoch_times(animals, epoch_key):
     segments_times['end_time'] = epoch_minutes.iloc[1:].index
 
     return segments_times
+
+def get_ntrode_event_spikes(event_times, spike_times, ntrodes, window=.4):
+    '''per ntrode, get list of event-triggered spike raster
+
+    Parameters
+    ----------
+    ntrodes : list of ints
+    event_times : pd.DataFrame, columns=['start_time', 'end_time']
+    spike_times : pd.DataFrame, index=timedelta labeled 'time'
+    window : float
+
+    Returns
+    -------
+    Spikes : Holoviews Spikes element
+
+    '''
+    from datetime import timedelta
+    events = np.arange(1,event_times.shape[0]+1)
+    window_spikes = [ pd.DataFrame(pd.concat([(spike_times[ntrode-1].dropna()[(rv.start_time-timedelta(seconds=window)):(rv.start_time+timedelta(seconds=window))].reset_index()['time'] - rv.start_time).dt.total_seconds()
+                 for irip, rv in event_times.iterrows()
+                 ], keys=events, names=['event_number'])).reset_index() for ntrode in ntrodes]
+    return window_spikes
