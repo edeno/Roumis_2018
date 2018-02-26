@@ -126,7 +126,7 @@ def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, ntrode
     return spikes_Spikes
 
 
-def get_ntrode_spikes_dmap(event_times, spike_times, window=.4, ntrode=1):
+def get_ntrode_spikes_dmap(event_times, spike_times, window=.4 ntrode=1):
     import pandas as pd
     '''per ntrode, event-triggered spike raster as Holoviews DynamicMap
 
