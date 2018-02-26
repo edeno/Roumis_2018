@@ -48,14 +48,14 @@ def chunk_position_timeseries(position, resample_time, event_times):
         ]
     return position_chunks
 
-def linspaced_epoch_times(num_of_chunks, timeseries_df, animals, epoch_key):
+def minute_linspaced_epoch_times(animals, epoch_key):
     from loren_frank_data_processing import get_trial_time
     '''linspaced times to chunk timeseries
 
     Parameters
     ----------
     num_of_chunks : int (the number of chunks)
-    timeseries_df : pandas.DataFrame. (requires time index)
+    animals = dict
     epoch_key : tuple e.g. (str(animal), int(day), int(epoch))
 
     Returns
@@ -63,15 +63,13 @@ def linspaced_epoch_times(num_of_chunks, timeseries_df, animals, epoch_key):
     segment_times : pandas.DataFrame (start_time, end_time columns)
 
     '''
-
+    
     epoch_time = get_trial_time(epoch_key, animals)
-    startstamp = epoch_time[0].total_seconds()
-    endstamp = epoch_time[-1].total_seconds()
+    epoch_minutes = pd.DataFrame(index=epoch_time).resample('1T').min()
     segments_times = pd.DataFrame(columns=['start_time', 'end_time'])
-    segtimes = np.linspace(startstamp, endstamp,
-    num_of_chunks + 2, endpoint=True)
-    segments_times['start_time'] = segtimes[0:-2]
-    segments_times['end_time'] = segtimes[1:-1]
+    segments_times['start_time'] = epoch_minutes.iloc[:-1].index
+    segments_times['end_time'] = epoch_minutes.iloc[1:].index
+
     return segments_times
 
 
