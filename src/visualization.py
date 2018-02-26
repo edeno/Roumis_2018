@@ -117,15 +117,45 @@ def get_event_spikes_hmaps(event_list, ntrodes, event_times, spike_times, ntrode
         event_end_time = event_times.iloc[event_number].end_time
         window_start_time = event_start_time - timedelta(seconds=window)
         window_end_time = event_start_time + timedelta(seconds=window)
-        window_spikes = spike_times[window_start_time:window_end_time]
-        window_spikes.reset_index(inplace=True)
-        spikes_Spikes[ievent] = hv.NdOverlay({nti: hv.Spikes(window_spikes[window_spikes.ntrode == nti].time,
-                                                             kdims='time', group='multiunit',
-                                                             label=ntrode_df.xs(epoch_index).area[nti])
-                                              .opts(plot=dict(position=nti))
-                                              for nti in ntrodes})
+        window_spikes = spike_times[ window_start_time: window_end_time ]
+        window_spikes.reset_index( inplace=True )
+        spikes_Spikes[ ievent ] = hv.NdOverlay({nti: hv.Spikes(window_spikes[ window_spikes.ntrode == nti ].time, kdims='time', group='multiunit',
+                     label=ntrode_df.xs(epoch_index).area[nti])
+      .opts(plot=dict(position=nti))
+      for nti in ntrodes})
     return spikes_Spikes
 
+
+def get_ntrode_spikes_dmap(event_times, spike_times, window=.4, ntrode=1):
+    import pandas as pd
+    '''per ntrode, event-triggered spike raster as Holoviews DynamicMap
+
+    Parameters
+    ----------
+    ntrode_number : int, default 0 for initialization
+    ntrodes : list of ints
+    event_times : pd.DataFrame, columns=['start_time', 'end_time']
+    spike_times : pd.DataFrame, index=timedelta labeled 'time'
+    window : float
+
+    Returns
+    -------
+    Spikes : Holoviews Spikes element
+
+    '''
+    events = np.arange(1,event_times.shape[0]+1)
+    window_spikes = pd.DataFrame(pd.concat([(spike_times[ntrode].dropna()[(rv.start_time-timedelta(seconds=window)):(rv.start_time+timedelta(seconds=window))].reset_index()['time'] - rv.start_time).dt.total_seconds()
+                 for irip, rv in event_times.iterrows()
+                 ], keys=events, names=['event_number'])).reset_index()
+
+    Spikes = {}
+    for irip, ripvals in event_times.iterrows():
+        Spikes[irip] = hv.Spikes(window_spikes[window_spikes.event_number == irip].time,
+         kdims = 'time',  group = 'SWR-trig_multi-unit').opts(plot = dict(position = irip))
+
+    Spikes_dmap = hv.NdOverlay(overlays=Spikes, kdims=['event_number']).opts(plot = dict(yticks = events))
+
+    return Spikes_dmap
 
 def get_event_spikes_dmap(ntrodes, epoch_index, event_times, spike_times, ntrode_df, window=.5, event_number=0):
     '''per event, event-triggered spike raster as Holoviews DynamicMap

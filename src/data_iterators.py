@@ -4,7 +4,7 @@ import pandas as pd
 
 def chunk_mark_timeseries(timeseries_df, ntrodes, segments_times, position,
                           resample_time='1ms'):
-    '''With row per segment
+    '''row per segment
 
     Parameters
     ----------
@@ -18,13 +18,13 @@ def chunk_mark_timeseries(timeseries_df, ntrodes, segments_times, position,
     -------
     segments_marks : pandas.DataFrame
     COLUMN_NAMES = ['segment_ID', 'segment_type', 'area', 'start_time',
-                    'end_time', 'marks', 'ntrodes', 'linear_position', 'times']
+                    'end_time', 'spikes', 'ntrodes', 'linear_position', 'times']
     '''
     COLUMN_NAMES = ['segment_ID', 'segment_type', 'area', 'start_time',
-                    'end_time', 'marks', 'ntrodes', 'linear_position', 'times']
+                    'end_time', 'spikes', 'ntrodes', 'linear_position', 'times']
     segments_marks = pd.DataFrame(columns=COLUMN_NAMES)
 
-    segments_marks['marks'] = [
+    segments_marks['spikes'] = [
         pd.concat([
             (timeseries_df[introde][seg['start_time']:seg['end_time']]
             .resample(resample_time).mean()).dropna()
