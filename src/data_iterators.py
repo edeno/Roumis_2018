@@ -71,20 +71,3 @@ def minute_linspaced_epoch_times(animals, epoch_key):
     segments_times['end_time'] = epoch_minutes.iloc[1:].index
 
     return segments_times
-
-
-def get_event_times(event_times):
-    '''peri-event timeseries chunks
-    this is just a dummy handle
-
-    Parameters
-    ----------
-    event_times : pandas.DataFrame. (start_time, end_time columns)
-
-    Returns
-    -------
-    segments_times : pandas.DataFrame. (start_time, end_time columns)
-
-    '''
-    segments_times = event_times
-    return segments_times
