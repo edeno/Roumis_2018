@@ -62,7 +62,7 @@ def plot_perievent_raster(neuron_or_tetrode_key, animals, events, tetrode_info,
                      color=m[0].get_color(), alpha=0.2)
     ax2.set_ylabel('Firing Rate (spikes / s)')
 
-    return ax
+    return ax, spikes, event_locked_spikes, kde
 
 
 def kernel_density_estimate(
@@ -151,9 +151,11 @@ def get_ntrode_spikes_dmap(event_times, window_spikes, epoch_index, ntrode_df, w
     Spikes = {}
     for irip, ripvals in event_times.iterrows():
         Spikes[irip] = hv.Spikes(window_spikes[ntrode-1][window_spikes[ntrode-1].event_number == irip].time,
-         kdims = 'time').opts(plot = dict(position = irip))
+         kdims = 'time',  group = 'multiunit').opts(plot = dict(position = irip))
 
-    Spikes_dmap = hv.NdOverlay(overlays=Spikes, kdims=['event_number'], group=ntrode_df.xs(epoch_index).area[ntrode]) #.opts(plot = dict(yticks = events))
+    Spikes_dmap = hv.NdOverlay(overlays=Spikes, kdims=['event_number'], group='{0} {1} {2} {3} {4}'
+    .format(epoch_index[0],epoch_index[1],epoch_index[2], ntrode,
+    ntrode_df.xs(epoch_index).area[ntrode])) #.opts(plot = dict(yticks = events))
 
     return Spikes_dmap
 
