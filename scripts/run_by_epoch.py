@@ -52,17 +52,23 @@ def main():
     position_info = get_interpolated_position_dataframe(epoch_key, ANIMALS)
     ripple_times = detect_epoch_ripples(
         epoch_key, ANIMALS, SAMPLING_FREQUENCY, position_info)
-    replay_info_ca1, _, _ = decode_ripple_clusterless(
+    (replay_info_ca1, decision_state_probability_ca1,
+     posterior_density_ca1) = decode_ripple_clusterless(
         epoch_key, ANIMALS, ripple_times, position_info=position_info,
         brain_areas='ca1')
     save_xarray(PROCESSED_DATA_DIR, epoch_key, replay_info_ca1.to_xarray(),
                 '/replay_info_ca1')
+    save_xarray(PROCESSED_DATA_DIR, epoch_key, posterior_density_ca1,
+                '/posterior_density_ca1')
 
-    replay_info_mec, _, _ = decode_ripple_clusterless(
+    (replay_info_mec, decision_state_probability_mec,
+     posterior_density_mec) = decode_ripple_clusterless(
         epoch_key, ANIMALS, ripple_times, position_info=position_info,
         brain_areas='mec')
     save_xarray(PROCESSED_DATA_DIR, epoch_key, replay_info_mec.to_xarray(),
                 '/replay_info_mec')
+    save_xarray(PROCESSED_DATA_DIR, epoch_key, posterior_density_mec,
+                '/posterior_density_mec')
 
     logging.info('Estimating ripple-locked LFP connectivity...')
     estimate_lfp_ripple_connectivity(epoch_key, ripple_times, replay_info_ca1)
