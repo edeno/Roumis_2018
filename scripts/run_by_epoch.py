@@ -1,8 +1,14 @@
+import logging
 from argparse import ArgumentParser
-from logging import DEBUG, INFO, Formatter, StreamHandler, getLogger
 from signal import SIGUSR1, SIGUSR2, signal
 from subprocess import PIPE, run
-from sys import exit, stdout
+from sys import exit
+
+from loren_frank_data_processing import (get_interpolated_position_dataframe,
+                                         save_xarray)
+from src.analysis import (decode_ripple_clusterless, detect_epoch_ripples,
+                          estimate_lfp_ripple_connectivity)
+from src.parameters import ANIMALS, PROCESSED_DATA_DIR, SAMPLING_FREQUENCY
 
 
 def get_command_line_arguments():
@@ -16,29 +22,19 @@ def get_command_line_arguments():
         help='More verbose output for debugging',
         action='store_const',
         dest='log_level',
-        const=DEBUG,
-        default=INFO,
+        const=logging.DEBUG,
+        default=logging.INFO,
     )
     return parser.parse_args()
 
 
-def get_logger():
-    formatter = Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler = StreamHandler(stream=stdout)
-    handler.setFormatter(formatter)
-    logger = getLogger()
-    logger.addHandler(handler)
-    return logger
-
-
 def main():
     args = get_command_line_arguments()
-    logger = get_logger()
-    logger.setLevel(args.log_level)
+    FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(format=FORMAT, level=args.log_level)
 
     def _signal_handler(signal_code, frame):
-        logger.error('***Process killed with signal {signal}***'.format(
+        logging.error('***Process killed with signal {signal}***'.format(
             signal=signal_code))
         exit()
 
@@ -46,14 +42,32 @@ def main():
         signal(code, _signal_handler)
 
     epoch_key = (args.Animal, args.Day, args.Epoch)
-    logger.info(
+    logging.info(
         'Processing epoch: Animal {0}, Day {1}, Epoch #{2}...'.format(
             *epoch_key))
     git_hash = run(['git', 'rev-parse', 'HEAD'],
                    stdout=PIPE, universal_newlines=True).stdout
-    logger.info('Git Hash: {git_hash}'.format(git_hash=git_hash.rstrip()))
+    logging.info('Git Hash: {git_hash}'.format(git_hash=git_hash.rstrip()))
 
-    logger.info('Finished Processing')
+    position_info = get_interpolated_position_dataframe(epoch_key, ANIMALS)
+    ripple_times = detect_epoch_ripples(
+        epoch_key, ANIMALS, SAMPLING_FREQUENCY, position_info)
+    replay_info_ca1, _, _ = decode_ripple_clusterless(
+        epoch_key, ANIMALS, ripple_times, position_info=position_info,
+        brain_areas='ca1')
+    save_xarray(PROCESSED_DATA_DIR, epoch_key, replay_info_ca1.to_xarray(),
+                '/replay_info_ca1')
+
+    replay_info_mec, _, _ = decode_ripple_clusterless(
+        epoch_key, ANIMALS, ripple_times, position_info=position_info,
+        brain_areas='mec')
+    save_xarray(PROCESSED_DATA_DIR, epoch_key, replay_info_mec.to_xarray(),
+                '/replay_info_mec')
+
+    logging.info('Estimating ripple-locked LFP connectivity...')
+    estimate_lfp_ripple_connectivity(epoch_key, ripple_times, replay_info_ca1)
+
+    logging.info('Finished Processing')
 
 
 if __name__ == '__main__':
