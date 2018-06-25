@@ -51,8 +51,7 @@ def main():
     args = get_command_line_arguments()
     if args.Animal is None and args.Day is None and args.Epoch is None:
         epoch_info = make_epochs_dataframe(ANIMALS)
-        epoch_keys = epoch_info[(epoch_info.type == 'run') & (
-            epoch_info.environment != 'lin')].index
+        epoch_keys = epoch_info[epoch_info.environment == 'wtrack'].index
     else:
         epoch_keys = [(args.Animal, args.Day, args.Epoch)]
 
