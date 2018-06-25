@@ -447,7 +447,8 @@ def ripple_triggered_connectivity(
                           .rename({'variable': 'tetrodes'})
                           .transpose('time', 'ripple_number', 'tetrodes')
                           .dropna('ripple_number'))
-    ripple_ERP = ripple_locked_lfps.mean('ripple_number').to_dataset('ERP')
+    ripple_ERP = (ripple_locked_lfps.mean('ripple_number')
+                  .to_dataset(name='ERP'))
     ripple_locked_lfps = (ripple_locked_lfps
                           - ripple_locked_lfps.mean(['ripple_number']))
     start_time = ripple_locked_lfps.time.min().values / np.timedelta64(1, 's')
