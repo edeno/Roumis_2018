@@ -444,8 +444,8 @@ def ripple_triggered_connectivity(
         lfps, ripple_times, window_offset=window_offset,
         sampling_frequency=sampling_frequency)
     ripple_locked_lfps = (ripple_locked_lfps.to_xarray().to_array()
-                          .rename({'variable': 'tetrodes'})
-                          .transpose('time', 'ripple_number', 'tetrodes')
+                          .rename({'variable': 'tetrode'})
+                          .transpose('time', 'ripple_number', 'tetrode')
                           .dropna('ripple_number'))
     ripple_ERP = (ripple_locked_lfps.mean('ripple_number')
                   .to_dataset(name='ERP'))
