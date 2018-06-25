@@ -620,11 +620,7 @@ def estimate_lfp_ripple_connectivity(epoch_key, ripple_times, replay_info):
 
     tetrode_info = make_tetrode_dataframe(ANIMALS).xs(
         epoch_key, drop_level=False)
-    tetrode_info = tetrode_info[
-        ~tetrode_info.descrip.str.endswith('Ref').fillna(False)
-        & (tetrode_info.numcells > 0)
-        & tetrode_info.area.isin(['PFC', 'CA1', 'iCA1'])
-    ]
+    tetrode_info = tetrode_info[tetrode_info.area.isin(['ca1', 'mec'])]
 
     lfps = get_LFPs(tetrode_info.index, ANIMALS)
 
