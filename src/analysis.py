@@ -45,10 +45,9 @@ def detect_epoch_ripples(
     brain_areas = [brain_areas] if isinstance(
         brain_areas, str) else brain_areas
     is_brain_areas = tetrode_info.area.isin(brain_areas)
-    if 'CA1' in brain_areas:
-        is_brain_areas = is_brain_areas & tetrode_info.descrip.isin(['riptet'])
+
     logger.debug(tetrode_info[is_brain_areas]
-                 .loc[:, ['area', 'depth', 'descrip']])
+                 .loc[:, ['area', 'depth']])
     tetrode_keys = tetrode_info[is_brain_areas].index
     lfps = get_LFPs(tetrode_keys, animals)
     time = lfps.index
@@ -80,7 +79,7 @@ def decode_ripple_clusterless(epoch_key, animals, ripple_times,
         brain_areas, str) else brain_areas
     is_brain_areas = tetrode_info.area.isin(brain_areas)
     brain_areas_tetrodes = tetrode_info[is_brain_areas]
-    logger.debug(brain_areas_tetrodes.loc[:, ['area', 'depth', 'descrip']])
+    logger.debug(brain_areas_tetrodes.loc[:, ['area', 'depth']])
 
     if mark_names is None:
         # Use all available mark dimensions
