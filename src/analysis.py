@@ -88,9 +88,11 @@ def decode_ripple_clusterless(epoch_key, animals, ripple_times,
         mark_names = [mark_name for mark_name in mark_names
                       if mark_name not in ['x_position', 'y_position']]
 
-    marks = [(get_multiunit_indicator_dataframe(tetrode_key, animals)
-              .loc[:, mark_names])
-             for tetrode_key in brain_areas_tetrodes.index]
+    marks = []
+    for tetrode_key in brain_areas_tetrodes.index:
+        multiunit_df = _get_multiunit_indicator_dataframe(tetrode_key, animals)
+        if multiunit_df is not None:
+            marks.append(multiunit_df.loc[:, mark_names])
 
     if position_info is None:
         position_info = get_interpolated_position_dataframe(epoch_key, animals)
@@ -131,6 +133,13 @@ def decode_ripple_clusterless(epoch_key, animals, ripple_times,
 
     return summarize_replay_results(
         results, ripple_times, position_info, epoch_key)
+
+
+def _get_multiunit_indicator_dataframe(tetrode_key, animals):
+    try:
+        return get_multiunit_indicator_dataframe(tetrode_key, animals)
+    except IndexError:
+        return None
 
 
 def decode_ripple_sorted_spikes(epoch_key, animals, ripple_times,
