@@ -70,6 +70,15 @@ def main():
     save_xarray(PROCESSED_DATA_DIR, epoch_key, posterior_density_mec,
                 '/posterior_density_mec')
 
+    (replay_info_ca1_mec, decision_state_probability_ca1_mec,
+     posterior_density_ca1_mec) = decode_ripple_clusterless(
+        epoch_key, ANIMALS, ripple_times, position_info=position_info,
+        brain_areas=['ca1', 'mec'])
+    save_xarray(PROCESSED_DATA_DIR, epoch_key, replay_info_ca1_mec.to_xarray(),
+                '/replay_info_ca1_mec')
+    save_xarray(PROCESSED_DATA_DIR, epoch_key, posterior_density_ca1_mec,
+                '/posterior_density_ca1_mec')
+
     logging.info('Estimating ripple-locked LFP connectivity...')
     estimate_lfp_ripple_connectivity(epoch_key, ripple_times, replay_info_ca1)
 
