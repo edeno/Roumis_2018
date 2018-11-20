@@ -13,16 +13,17 @@ from loren_frank_data_processing import (get_interpolated_position_dataframe,
                                          make_tetrode_dataframe,
                                          reshape_to_segments, save_xarray)
 from replay_classification import ClusterlessDecoder, SortedSpikeDecoder
-from ripple_detection import Kay_ripple_detector
+from ripple_detection import Kay_ripple_detector, multiunit_HSE_detector
 from spectral_connectivity import Connectivity, Multitaper
-from src.parameters import (ANIMALS, FREQUENCY_BANDS, PROCESSED_DATA_DIR,
-                            REPLAY_COVARIATES, SAMPLING_FREQUENCY,
-                            MULTITAPER_PARAMETERS)
+from src.parameters import (ANIMALS, FREQUENCY_BANDS, MULTITAPER_PARAMETERS,
+                            PROCESSED_DATA_DIR, REPLAY_COVARIATES,
+                            SAMPLING_FREQUENCY)
 
 logger = getLogger(__name__)
 
 _MARKS = ['channel_1_max', 'channel_2_max', 'channel_3_max',
-          'channel_4_max']
+          'channel_4_max', 'channel_5_max', 'channel_6_max',
+          'channel_7_max', 'channel_8_max']
 _BRAIN_AREAS = 'ca1'
 
 
@@ -38,7 +39,7 @@ def detect_epoch_ripples(
     function and then filtered to exclude ripples where the animal was
     still moving.
     '''
-    logger.info('Detecting ripples')
+    logger.info(f'Detecting ripples in {brain_areas}')
 
     tetrode_info = make_tetrode_dataframe(animals).xs(
         epoch_key, drop_level=False)
@@ -49,11 +50,12 @@ def detect_epoch_ripples(
     logger.debug(tetrode_info[is_brain_areas]
                  .loc[:, ['area', 'depth']])
     tetrode_keys = tetrode_info[is_brain_areas].index
-    lfps = get_LFPs(tetrode_keys, animals)
-    time = lfps.index
     if position_info is None:
         position_info = get_interpolated_position_dataframe(
             epoch_key, animals)
+    lfps = get_LFPs(tetrode_keys, animals)
+    time = lfps.index
+
     speed = position_info.speed
 
     return detector(
@@ -135,9 +137,11 @@ def decode_ripple_clusterless(epoch_key, animals, ripple_times,
         results, ripple_times, position_info, epoch_key)
 
 
-def _get_multiunit_indicator_dataframe(tetrode_key, animals):
+def _get_multiunit_indicator_dataframe(tetrode_key, animals,
+                                       time_function=get_trial_time):
     try:
-        return get_multiunit_indicator_dataframe(tetrode_key, animals)
+        return get_multiunit_indicator_dataframe(
+            tetrode_key, animals, time_function)
     except IndexError:
         return None
 
@@ -181,7 +185,7 @@ def decode_ripple_sorted_spikes(epoch_key, animals, ripple_times,
                            how='right', right_index=True).set_index(
         neuron_info.index)
     neuron_info = neuron_info[
-        neuron_info.area.isin(['CA1', 'iCA1', 'CA3']) &
+        neuron_info.area.isin(['ca1', 'mec']) &
         (neuron_info.numspikes > 0)]
     logger.debug(neuron_info.loc[:, ['area', 'numspikes']])
     position_info['lagged_linear_distance'] = (
@@ -393,13 +397,21 @@ def _get_ripple_spikes(spikes_data, ripple_times, sampling_frequency):
         for ripple_number in ripple_times.index]
 
 
-def get_ripple_indicator(epoch_key, animals, ripple_times):
-    time = get_trial_time(epoch_key, animals)
+def get_ripple_indicator(epoch_key, animals, ripple_times, time=None):
+    if time is None:
+        time = get_trial_time(epoch_key, animals)
     ripple_indicator = pd.Series(np.zeros_like(time, dtype=bool), index=time)
     for _, start_time, end_time in ripple_times.itertuples():
         ripple_indicator[start_time:end_time] = True
 
     return ripple_indicator
+
+
+def get_event_indicator(time, events):
+    indicator = pd.Series(np.zeros_like(time, dtype=bool), index=time)
+    for _, start_time, end_time in events.itertuples():
+        indicator[start_time:end_time] = True
+    return indicator
 
 
 def _center_time(time):
@@ -648,3 +660,46 @@ def estimate_lfp_ripple_connectivity(epoch_key, ripple_times, replay_info):
                 lfps, epoch_key, tetrode_info,
                 replay_info, covariate, parameters, SAMPLING_FREQUENCY,
                 FREQUENCY_BANDS, multitaper_parameter_name=parameters_name)
+
+
+def get_multiunits(tetrode_info, brain_areas='', mark_names=_MARKS):
+    brain_areas = [brain_areas] if isinstance(
+        brain_areas, str) else brain_areas
+    brain_areas_tetrodes = tetrode_info[tetrode_info.area.isin(brain_areas)]
+    multiunit = []
+    for tetrode_key in brain_areas_tetrodes.index:
+        multiunit_df = _get_multiunit_indicator_dataframe(
+            tetrode_key, ANIMALS)
+        if multiunit_df is not None:
+            multiunit.append(multiunit_df.loc[:, mark_names])
+
+    return np.stack(multiunit, axis=-1)
+
+
+def get_multiunit_spikes(multiunit):
+    return np.any(~np.isnan(multiunit), axis=1).astype(np.float)
+
+
+def detect_epoch_high_sychrony_events(
+    epoch_key, animals, sampling_frequency,
+    position_info=None, brain_areas=_BRAIN_AREAS,
+    minimum_duration=np.timedelta64(15, 'ms'),
+    zscore_threshold=3,
+        close_event_threshold=np.timedelta64(0, 'ms')):
+    logger.info(f'Detecting high synchrony events in {brain_areas}')
+
+    tetrode_info = make_tetrode_dataframe(animals).xs(
+        epoch_key, drop_level=False)
+
+    if position_info is None:
+        position_info = get_interpolated_position_dataframe(
+            epoch_key, animals)
+    multiunit = get_multiunits(tetrode_info, brain_areas)
+    multiunit = get_multiunit_spikes(multiunit)
+    time = position_info.index
+    speed = position_info.speed.values
+
+    return multiunit_HSE_detector(
+        time, multiunit, speed, sampling_frequency,
+        minimum_duration=minimum_duration, zscore_threshold=zscore_threshold,
+        close_event_threshold=close_event_threshold)
